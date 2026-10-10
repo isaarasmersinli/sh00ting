@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Bodycam Tactical Shooter</title>
+    <title>Tactical Bodycam Shooter</title>
     <style>
         * {
             box-sizing: border-box;
@@ -18,7 +18,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #000;
+            background-color: #111;
             position: fixed;
             top: 0;
             left: 0;
@@ -27,19 +27,14 @@
             width: 100%;
             height: 100%;
             position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
+            top: 0; left: 0; z-index: 1;
         }
 
-        /* 18+ Yaş Uyarısı */
+        /* 18+ Doğrulama */
         #age-gate {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; color: #fff;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            z-index: 99999; text-align: center; padding: 20px;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: #fff; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 99999; text-align: center; padding: 20px;
         }
         #age-gate h1 { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
         #age-gate p { font-size: 14px; color: #aaa; margin-bottom: 20px; }
@@ -48,116 +43,115 @@
             font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer;
         }
 
-        /* Bodycam Vinyet / Scanline */
+        /* Bodycam Vinyet */
         #bodycam-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 2;
-            box-shadow: inset 0 0 140px rgba(0,0,0,0.9);
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%);
+            box-shadow: inset 0 0 160px rgba(0,0,0,0.85);
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
             background-size: 100% 4px;
         }
 
         /* Crosshair */
         #crosshair {
-            position: absolute;
-            top: 50%; left: 50%;
+            position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 5px; height: 5px;
-            background-color: #8b0000;
-            border: 1px solid #000;
-            border-radius: 50%;
-            pointer-events: none; z-index: 3;
-            transition: opacity 0.2s;
+            width: 6px; height: 6px; background-color: rgba(255,255,255,0.7);
+            border: 1px solid #000; border-radius: 50%;
+            pointer-events: none; z-index: 3; transition: opacity 0.2s;
         }
 
-        /* Sol Üst - E Menü Butonu */
+        /* Sol Üst - E Menü */
         #menu-btn {
             position: absolute; top: 15px; left: 15px;
-            width: 48px; height: 48px;
-            background: rgba(0, 0, 0, 0.6);
-            border: 1.5px solid rgba(255, 255, 255, 0.4);
-            border-radius: 10px; color: #fff;
-            font-size: 20px; font-weight: bold;
+            width: 48px; height: 48px; background: rgba(0, 0, 0, 0.6);
+            border: 1.5px solid rgba(255, 255, 255, 0.4); border-radius: 10px;
+            color: #fff; font-size: 20px; font-weight: bold;
             display: flex; justify-content: center; align-items: center;
             z-index: 10; cursor: pointer; backdrop-filter: blur(4px);
         }
 
-        /* Sağ Üst - Kırmızı -X Skor */
-        #kill-counter {
+        /* Sağ Üst Skor / Başlık */
+        #hud-title {
             position: absolute; top: 15px; right: 25px; z-index: 10;
-            color: #cc0000; font-size: 38px; font-weight: 900;
-            font-family: 'Impact', 'Arial Black', sans-serif;
-            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
-            pointer-events: none;
+            color: #fff; font-size: 22px; font-weight: 800; text-align: right;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8); pointer-events: none;
         }
 
-        /* Joystick & Butonlar */
+        /* Alt Silah Slotları (Görseldeki gibi 1, 2, 3) */
+        #weapon-slots {
+            position: absolute; bottom: 15px; left: 50%;
+            transform: translateX(-50%); z-index: 10;
+            display: flex; gap: 8px; pointer-events: none;
+        }
+        .slot {
+            width: 85px; height: 36px; background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 4px;
+            color: #aaa; font-size: 11px; font-weight: bold;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-shadow: 0 1px 2px #000;
+        }
+        .slot.active { border-color: #fff; color: #fff; background: rgba(50,50,50,0.8); }
+        .slot span { font-size: 10px; color: #777; }
+        .slot.active span { color: #aaa; }
+
+        /* Mobil Joystick (Sol) */
         #joystick-zone {
-            position: absolute; bottom: 25px; left: 25px;
-            width: 140px; height: 140px; z-index: 10;
+            position: absolute; bottom: 25px; left: 25px; width: 130px; height: 130px; z-index: 10;
         }
         #joystick-base {
-            width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.12);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%; position: relative;
+            width: 100%; height: 100%; background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.25); border-radius: 50%; position: relative;
         }
         #joystick-stick {
-            width: 55px; height: 55px;
-            background: rgba(255, 255, 255, 0.5);
-            border: 2px solid #fff; border-radius: 50%;
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
+            width: 50px; height: 50px; background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.6); border-radius: 50%;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
         }
 
+        /* Sağ Mobil Tuşlar (Görseldeki Düzen) */
         .action-btns {
             position: absolute; bottom: 20px; right: 20px; z-index: 10;
-            display: grid; grid-template-columns: repeat(3, 62px); grid-gap: 12px;
+            width: 200px; height: 180px;
         }
-        .btn {
-            width: 62px; height: 62px;
-            background: rgba(0, 0, 0, 0.65);
-            border: 1.5px solid rgba(255, 255, 255, 0.4);
-            border-radius: 50%; color: #fff;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            font-size: 11px; font-weight: bold; backdrop-filter: blur(4px);
-            touch-action: manipulation;
+        .rbtn {
+            position: absolute; width: 56px; height: 56px;
+            background: rgba(0, 0, 0, 0.55); border: 1.5px solid rgba(255, 255, 255, 0.35);
+            border-radius: 50%; color: #fff; font-size: 11px; font-weight: bold;
+            display: flex; justify-content: center; align-items: center;
+            backdrop-filter: blur(4px); touch-action: manipulation;
         }
-        .btn:active, .btn.active-mode { background: rgba(255, 255, 255, 0.4); border-color: #fff; }
-        #btn-fire {
-            grid-column: 3; grid-row: 2;
-            width: 72px; height: 72px;
-            background: rgba(180, 0, 0, 0.65); border-color: #ff3333;
-        }
+        .rbtn:active, .rbtn.active-mode { background: rgba(255, 255, 255, 0.35); border-color: #fff; }
+        
+        #btn-aim { bottom: 65px; right: 125px; width: 50px; height: 50px; font-size: 10px; }
+        #btn-reload { top: 0px; right: 65px; }
+        #btn-sprint { bottom: 10px; right: 125px; width: 50px; height: 50px; font-size: 10px; }
+        #btn-switch { top: 45px; right: 135px; width: 46px; height: 46px; font-size: 10px; }
+        #btn-fire { bottom: 25px; right: 0px; width: 75px; height: 75px; background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.5); font-size: 13px; }
 
         /* Menü */
         #settings-menu {
-            position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%; max-width: 380px; max-height: 85vh;
-            background: rgba(15, 15, 15, 0.96);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 14px; z-index: 100;
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 90%; max-width: 380px; background: rgba(15, 15, 15, 0.96);
+            border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 14px; z-index: 100;
             display: none; flex-direction: column; color: #fff; padding: 18px;
-            overflow-y: auto;
         }
         #settings-menu h2 { font-size: 18px; margin-bottom: 12px; text-align: center; border-bottom: 1px solid #333; padding-bottom: 8px; }
         .menu-btn-item {
             width: 100%; padding: 10px; background: #2a2a2a; border: 1px solid #444;
-            color: #fff; border-radius: 8px; font-weight: bold; font-size: 13px; margin-top: 6px;
+            color: #fff; border-radius: 8px; font-weight: bold; font-size: 13px; margin-top: 6px; cursor: pointer;
         }
         .music-player { background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 10px; margin-top: 10px; text-align: center; }
         .track-info { font-size: 12px; color: #4da6ff; margin-bottom: 8px; font-weight: bold; }
         .player-controls { display: flex; justify-content: center; gap: 8px; }
-        .player-btn { background: #333; border: 1px solid #555; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; }
+        .player-btn { background: #333; border: 1px solid #555; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div id="age-gate">
         <h1>SADECE 18 YAŞINDAYSAN GİR</h1>
-        <p>Bu oyun şiddet ve silah içerikleri barındırmaktadır.</p>
+        <p>Bu oyun şiddet ve silah içerikleri barındırmaktadır[span_3](start_span)[span_3](end_span).</p>
         <button id="age-btn">GİRİŞ YAP</button>
     </div>
 
@@ -165,20 +159,27 @@
     <div id="bodycam-overlay"></div>
     <div id="crosshair"></div>
 
-    <div id="menu-btn">E</div>
-    <div id="kill-counter">-0</div>
+    <div id="menu-btn">≡</div>
+    <div id="hud-title">dead check<br><span style="font-size:15px; color:#aaa;">9/10</span></div>
+
+    <!-- Alt Silah Slotları (Görseldeki gibi) -->
+    <div id="weapon-slots">
+        <div class="slot active" id="slot-0">Mossberg<br><span id="ammo-0">590</span></div>
+        <div class="slot" id="slot-1">Glock 19<br><span>15</span></div>
+        <div class="slot" id="slot-2">Empty<br><span>-</span></div>
+    </div>
 
     <div id="joystick-zone">
         <div id="joystick-base"><div id="joystick-stick"></div></div>
     </div>
 
+    <!-- Sağ Tuşlar -->
     <div class="action-btns">
-        <button class="btn" id="btn-crouch">EĞİL</button>
-        <button class="btn" id="btn-sprint">KOŞ</button>
-        <button class="btn" id="btn-switch">SİLAH</button>
-        <button class="btn" id="btn-reload">DOLDUR</button>
-        <button class="btn" id="btn-aim">NİŞAN</button>
-        <button class="btn" id="btn-fire">ATEŞ</button>
+        <button class="rbtn" id="btn-reload">Reload</button>
+        <button class="rbtn" id="btn-switch">Slot</button>
+        <button class="rbtn" id="btn-aim">Aim</button>
+        <button class="rbtn" id="btn-sprint">Sprint</button>
+        <button class="rbtn" id="btn-fire">Shoot</button>
     </div>
 
     <div id="settings-menu">
@@ -194,7 +195,6 @@
                 <button class="player-btn" id="music-next">►►</button>
             </div>
         </div>
-
         <button class="menu-btn-item" id="close-menu" style="background:#aa0000; margin-top:12px;">Kapat</button>
     </div>
 
@@ -210,7 +210,7 @@
             resizeCanvas();
         });
 
-        // --- Müzik Çalar ---
+        // Müzik Çalar
         let currentTrack = 1, isPlaying = false;
         const audioEl = document.getElementById('audio-element');
         const trackNameEl = document.getElementById('track-name');
@@ -219,9 +219,8 @@
             currentTrack = idx;
             audioEl.src = `songs/${currentTrack}.mp4`;
             trackNameEl.innerText = `Parça: songs/${currentTrack}.mp4`;
-            if (isPlaying) audioEl.play().catch(e => console.log("Video/Ses bulunamadı."));
+            if (isPlaying) audioEl.play().catch(e => console.log("Müzik yok."));
         }
-
         document.getElementById('music-play').addEventListener('click', () => {
             if (!audioEl.src) loadTrack(1);
             if (isPlaying) { audioEl.pause(); isPlaying = false; document.getElementById('music-play').innerText = "Oynat"; }
@@ -230,11 +229,11 @@
         document.getElementById('music-next').addEventListener('click', () => loadTrack(currentTrack + 1));
         document.getElementById('music-prev').addEventListener('click', () => { if (currentTrack > 1) loadTrack(currentTrack - 1); });
 
-        // --- Three.js Kurulumu ---
+        // --- Three.js Sahnesi (Görseldeki Otopark / Beton Atmosfer) ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb);
-        scene.fog = new THREE.FogExp2(0x87ceeb, 0.015);
+        scene.background = new THREE.Color(0x181a20); // Gece / Karanlık otopark havası
+        scene.fog = new THREE.FogExp2(0x181a20, 0.025);
 
         const camera = new THREE.PerspectiveCamera(85, window.innerWidth / window.innerHeight, 0.05, 1000);
         camera.rotation.order = 'YXZ';
@@ -249,21 +248,28 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
         window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 200));
         resizeCanvas();
 
-        // Işıklandırma
-        scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.9));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
-        dirLight.position.set(20, 40, 20);
+        // Işıklandırma (Sokak lambası / Atmosferik)
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const dirLight = new THREE.DirectionalLight(0xddeeff, 0.7);
+        dirLight.position.set(10, 30, 10);
         scene.add(dirLight);
 
-        // Baseplate Zemin
-        const floorGeo = new THREE.PlaneGeometry(200, 200);
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x6b7c62, roughness: 0.8 });
+        // Otopark / Zemin
+        const floorGeo = new THREE.PlaneGeometry(300, 300);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.9 });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
+
+        // Çevre Duvarları ve Bloklar (Görseldeki gibi low-poly otopark ortamı)
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.8 });
+        for(let i = -60; i <= 60; i += 40) {
+            const wall = new THREE.Mesh(new THREE.BoxGeometry(35, 6, 2), wallMat);
+            wall.position.set(i, 3, -30);
+            scene.add(wall);
+        }
 
         // --- Oyuncu ---
         const player = { pos: new THREE.Vector3(0, 1.65, 0), yaw: 0, pitch: 0, isCrouch: false, isSprint: false, isAim: false, kills: 0 };
@@ -273,61 +279,53 @@
         const weaponGroup = new THREE.Group();
         camera.add(weaponGroup);
 
-        // --- Silah Sistemi & Güvenli Fallback ---
+        // --- Kaliteli Low-Poly Silah Modeli (Mossberg / Tüfek Tarzı) ---
         let currentWeaponIndex = 0;
         let weapons = [];
         let weaponMixers = [];
 
-        // Garanti Görünür Detaylı FPS Silah Taslağı (GLTF yüklenene kadar veya hata durumunda ekranda kalır)
-        function createFPSGunMesh(isM4) {
+        function createRobloxStyleGun(isShotgun) {
             const group = new THREE.Group();
-            const mat = new THREE.MeshStandardMaterial({ color: isM4 ? 0x2b2b2b : 0x1a1a1a, roughness: 0.4 });
-            const metalMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.8 });
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 0.3 });
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.7 });
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.7 });
 
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, isM4 ? 0.6 : 0.35), mat);
-            body.position.set(0, 0, isM4 ? -0.1 : 0);
-            
-            const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, isM4 ? 0.4 : 0.2), metalMat);
+            // Gövde
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.1, isShotgun ? 0.75 : 0.45), bodyMat);
+            body.position.set(0, 0, -0.15);
+
+            // Namlu
+            const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, isShotgun ? 0.7 : 0.4), metalMat);
             barrel.rotation.x = Math.PI / 2;
-            barrel.position.set(0, 0.02, isM4 ? -0.35 : -0.2);
+            barrel.position.set(0, 0.02, isShotgun ? -0.5 : -0.3);
 
-            const mag = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.2, 0.08), metalMat);
-            mag.position.set(0, -0.12, isM4 ? 0.05 : 0);
-            mag.rotation.x = isM4 ? 0.2 : 0.1;
+            // Elcik / Dipçik (Ahşap detay)
+            const stock = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.09, 0.3), woodMat);
+            stock.position.set(0, -0.01, 0.2);
 
-            group.add(body, barrel, mag);
-            group.position.set(0.2, -0.22, -0.38);
+            group.add(body, barrel, stock);
+            group.position.set(0.2, -0.22, -0.4);
             return group;
         }
 
-        const m4Mesh = createFPSGunMesh(true);
-        const glockMesh = createFPSGunMesh(false);
-        glockMesh.visible = false;
-        weaponGroup.add(m4Mesh);
-        weaponGroup.add(glockMesh);
-        weapons = [m4Mesh, glockMesh];
+        const shotgunMesh = createRobloxStyleGun(true);
+        const pistolMesh = createRobloxStyleGun(false);
+        pistolMesh.visible = false;
+        weaponGroup.add(shotgunMesh);
+        weaponGroup.add(pistolMesh);
+        weapons = [shotgunMesh, pistolMesh];
 
-        // Harici GLTF Yükleme (Eğer yüklenirse fallback yerine geçer)
+        // Harici .gltf Modelleri Desteği (Klasörde varsa yükler)
         const gltfLoader = new THREE.GLTFLoader();
-
         gltfLoader.load('guns/m4a1/scene.gltf', (gltf) => {
             const model = gltf.scene;
             model.scale.set(5.0, 5.0, 5.0);
-            model.position.set(0.18, -0.25, -0.4);
+            model.position.set(0.2, -0.25, -0.4);
             model.rotation.set(0, Math.PI, 0);
-
-            if (gltf.animations.length > 0) {
-                const mixer = new THREE.AnimationMixer(model);
-                const action = mixer.clipAction(gltf.animations[0]);
-                action.play();
-                action.paused = true;
-                weaponMixers[0] = { mixer, action };
-            }
-
-            weaponGroup.remove(m4Mesh);
+            weaponGroup.remove(shotgunMesh);
             weaponGroup.add(model);
             weapons[0] = model;
-        }, undefined, (err) => console.log("M4A1 gltf yüklenemedi, varsayılan model aktif."));
+        });
 
         gltfLoader.load('guns/glock/scene.gltf', (gltf) => {
             const model = gltf.scene;
@@ -335,56 +333,37 @@
             model.position.set(0.15, -0.2, -0.35);
             model.rotation.set(0, Math.PI, 0);
             model.visible = false;
-
-            if (gltf.animations.length > 0) {
-                const mixer = new THREE.AnimationMixer(model);
-                const action = mixer.clipAction(gltf.animations[0]);
-                action.play();
-                action.paused = true;
-                weaponMixers[1] = { mixer, action };
-            }
-
-            weaponGroup.remove(glockMesh);
+            weaponGroup.remove(pistolMesh);
             weaponGroup.add(model);
             weapons[1] = model;
-        }, undefined, (err) => console.log("Glock gltf yüklenemedi, varsayılan model aktif."));
+        });
 
-        // --- Organik NPC Yapısı ---
+        // --- NPC Karakterler ---
         const npcs = [];
         function spawnNPC(x, z) {
             const group = new THREE.Group();
-            const skinMat = new THREE.MeshStandardMaterial({ color: 0xd2a282, roughness: 0.6 });
-            const clothesMat = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xd2a282 });
+            const clothMat = new THREE.MeshStandardMaterial({ color: 0x334466 });
 
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), skinMat);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), skinMat);
             head.position.y = 1.55;
             head.userData = { isHead: true };
 
-            const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.55, 16), clothesMat);
+            const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.55, 12), clothMat);
             torso.position.y = 1.15;
 
-            const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.6, 12), clothesMat);
-            legL.position.set(-0.08, 0.6, 0);
-            const legR = legL.clone(); legR.position.x = 0.08;
-
-            const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.5, 12), skinMat);
-            armL.position.set(-0.2, 1.2, 0);
-            const armR = armL.clone(); armR.position.x = 0.2;
-
-            group.add(head, torso, legL, legR, armL, armR);
+            group.add(head, torso);
             group.position.set(x, 0, z);
             scene.add(group);
-
-            npcs.push({ group, head, legL, legR, armL, armR, health: 100, isDead: false, fleeing: false, targetAngle: 0, animTime: 0 });
+            npcs.push({ group, head, health: 100, isDead: false, fleeing: false });
         }
+        for (let i = 0; i < 4; i++) spawnNPC((Math.random() - 0.5) * 16, -10 - Math.random() * 10);
 
-        for (let i = 0; i < 5; i++) spawnNPC((Math.random() - 0.5) * 16, -6 - Math.random() * 10);
-
-        // --- Ateş Etme & Hasar ---
+        // --- Ateş Etme ---
         function fire() {
-            weaponGroup.position.z += 0.05;
-            weaponGroup.rotation.x += 0.08;
-            if (navigator.vibrate) navigator.vibrate(35);
+            weaponGroup.position.z += 0.06;
+            weaponGroup.rotation.x += 0.1;
+            if (navigator.vibrate) navigator.vibrate(40);
 
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -397,21 +376,18 @@
                 const hitMesh = hits[0].object;
                 const npc = npcs.find(n => n.group.getObjectById(hitMesh.id) !== undefined);
                 if (npc && !npc.isDead) {
-                    const isHead = (hitMesh === npc.head || hitMesh.userData.isHead);
-                    npc.health -= isHead ? 100 : 35;
+                    npc.health -= (hitMesh === npc.head || hitMesh.userData.isHead) ? 100 : 40;
                     npc.fleeing = true;
                     if (npc.health <= 0) {
                         npc.isDead = true;
                         npc.group.rotation.x = -Math.PI / 2;
                         npc.group.position.y = 0.15;
-                        player.kills++;
-                        document.getElementById('kill-counter').innerText = `-${player.kills}`;
                     }
                 }
             }
         }
 
-        // --- Kontroller & Lag ---
+        // --- Kontroller & Eylemsizlik ---
         let touchX = 0, touchY = 0, camId = null;
         let deltaYaw = 0, deltaPitch = 0;
 
@@ -422,25 +398,20 @@
                 }
             }
         });
-
         window.addEventListener('touchmove', (e) => {
             for (let t of e.changedTouches) {
                 if (t.identifier === camId) {
                     deltaYaw = -(t.clientX - touchX) * 0.005;
                     deltaPitch = -(t.clientY - touchY) * 0.005;
-
                     player.yaw += deltaYaw;
                     player.pitch += deltaPitch;
                     player.pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, player.pitch));
-
                     touchX = t.clientX; touchY = t.clientY;
                 }
             }
         });
-
-        const resetCam = (e) => { for (let t of e.changedTouches) { if (t.identifier === camId) camId = null; } };
-        window.addEventListener('touchend', resetCam);
-        window.addEventListener('touchcancel', resetCam);
+        const resetCam = (e) => { for (let t of e.changedTouches) if (t.identifier === camId) camId = null; };
+        window.addEventListener('touchend', resetCam); window.addEventListener('touchcancel', resetCam);
 
         // Joystick
         const joyBase = document.getElementById('joystick-base');
@@ -463,33 +434,23 @@
             joyVec = { x: dx / 50, y: dy / 50 };
         }
 
-        // Butonlar
+        // Butonlar ve Slot Değişimi
         document.getElementById('btn-fire').addEventListener('touchstart', (e) => { e.preventDefault(); fire(); });
-        document.getElementById('btn-reload').addEventListener('click', () => {
-            const m = weaponMixers[currentWeaponIndex];
-            if (m) { m.action.reset(); m.action.paused = false; m.action.play(); }
-        });
-        document.getElementById('btn-switch').addEventListener('click', () => {
-            weapons[currentWeaponIndex].visible = false;
-            currentWeaponIndex = (currentWeaponIndex + 1) % weapons.length;
-            weapons[currentWeaponIndex].visible = true;
-        });
-
-        const aimBtn = document.getElementById('btn-aim');
-        aimBtn.addEventListener('click', () => {
+        document.getElementById('btn-aim').addEventListener('click', () => {
             player.isAim = !player.isAim;
-            aimBtn.classList.toggle('active-mode', player.isAim);
+            document.getElementById('btn-aim').classList.toggle('active-mode', player.isAim);
             document.getElementById('crosshair').style.opacity = player.isAim ? '0.2' : '1';
         });
-
         document.getElementById('btn-sprint').addEventListener('click', () => {
             player.isSprint = !player.isSprint;
             document.getElementById('btn-sprint').classList.toggle('active-mode', player.isSprint);
         });
-
-        document.getElementById('btn-crouch').addEventListener('click', () => {
-            player.isCrouch = !player.isCrouch;
-            document.getElementById('btn-crouch').classList.toggle('active-mode', player.isCrouch);
+        document.getElementById('btn-switch').addEventListener('click', () => {
+            weapons[currentWeaponIndex].visible = false;
+            document.getElementById(`slot-${currentWeaponIndex}`).classList.remove('active');
+            currentWeaponIndex = (currentWeaponIndex + 1) % weapons.length;
+            weapons[currentWeaponIndex].visible = true;
+            document.getElementById(`slot-${currentWeaponIndex}`).classList.add('active');
         });
 
         document.getElementById('menu-btn').addEventListener('click', () => {
@@ -500,61 +461,43 @@
         document.getElementById('spawn-npc-btn').addEventListener('click', () => spawnNPC((Math.random() - 0.5) * 12, camera.position.z - 8));
         document.getElementById('clear-npcs-btn').addEventListener('click', () => { npcs.forEach(n => scene.remove(n.group)); npcs.length = 0; });
 
-        // --- Döngü ---
+        // --- Oyun Döngüsü ---
         const clock = new THREE.Clock();
-        let weaponLagRotationX = 0, weaponLagRotationY = 0;
+        let lagRotX = 0, lagRotY = 0;
 
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
             const time = clock.getElapsedTime();
 
-            weaponMixers.forEach(m => { if (m) m.mixer.update(delta); });
-
             camera.rotation.x = player.pitch;
             camera.rotation.y = player.yaw;
             camera.rotation.z = 0;
 
             const speed = player.isSprint ? 0.12 : (player.isCrouch ? 0.04 : 0.07);
-            const moveZ = joyVec.y * speed, moveX = joyVec.x * speed;
-            player.pos.x += moveX * Math.cos(player.yaw) + moveZ * Math.sin(player.yaw);
-            player.pos.z += -moveX * Math.sin(player.yaw) + moveZ * Math.cos(player.yaw);
-
-            player.pos.y += ((player.isCrouch ? 1.0 : 1.65) - player.pos.y) * 0.1;
+            player.pos.x += (joyVec.x * speed) * Math.cos(player.yaw) + (joyVec.y * speed) * Math.sin(player.yaw);
+            player.pos.z += -(joyVec.x * speed) * Math.sin(player.yaw) + (joyVec.y * speed) * Math.cos(player.yaw);
             camera.position.copy(player.pos);
 
-            // Eylemsizlik / Lag
-            weaponLagRotationY += (deltaYaw * 1.5 - weaponLagRotationY) * 0.1;
-            weaponLagRotationX += (deltaPitch * 1.5 - weaponLagRotationX) * 0.1;
+            // Eylemsizlik (Lag) & Sallantı
+            lagRotY += (deltaYaw * 1.5 - lagRotY) * 0.1;
+            lagRotX += (deltaPitch * 1.5 - lagRotX) * 0.1;
             deltaYaw = 0; deltaPitch = 0;
 
             const isMoving = Math.abs(joyVec.x) > 0.1 || Math.abs(joyVec.y) > 0.1;
-            const bobSpeed = isMoving ? (player.isSprint ? 14 : 9) : 2.5;
-            const bobAmt = isMoving ? (player.isSprint ? 0.045 : 0.025) : 0.006;
-            const bobX = Math.cos(time * bobSpeed) * bobAmt;
-            const bobY = Math.sin(time * bobSpeed * 2) * bobAmt;
+            const bob = isMoving ? 0.03 : 0.005;
 
-            // Nişan alma yumuşatması
-            const targetPos = player.isAim ? new THREE.Vector3(0, -0.12, -0.25) : new THREE.Vector3(0.2, -0.22, -0.38);
-            const targetRotY = player.isAim ? 0 : weaponLagRotationY;
-            const targetRotX = player.isAim ? 0 : weaponLagRotationX;
+            const targetPos = player.isAim ? new THREE.Vector3(0, -0.12, -0.22) : new THREE.Vector3(0.2, -0.22, -0.4);
+            weaponGroup.position.x += (targetPos.x + Math.cos(time * 8) * bob - weaponGroup.position.x) * 0.15;
+            weaponGroup.position.y += (targetPos.y + Math.sin(time * 16) * bob - weaponGroup.position.y) * 0.15;
+            weaponGroup.position.z += (targetPos.z - weaponGroup.position.z) * 0.15;
 
-            weaponGroup.position.x += (targetPos.x + bobX - weaponGroup.position.x) * 0.12;
-            weaponGroup.position.y += (targetPos.y + bobY - weaponGroup.position.y) * 0.12;
-            weaponGroup.position.z += (targetPos.z - weaponGroup.position.z) * 0.12;
-
-            weaponGroup.rotation.y += (targetRotY - weaponGroup.rotation.y) * 0.1;
-            weaponGroup.rotation.x += (targetRotX - weaponGroup.rotation.x) * 0.1;
+            weaponGroup.rotation.y += ((player.isAim ? 0 : lagRotY) - weaponGroup.rotation.y) * 0.1;
+            weaponGroup.rotation.x += ((player.isAim ? 0 : lagRotX) - weaponGroup.rotation.x) * 0.1;
             weaponGroup.rotation.x *= 0.85;
 
             npcs.forEach(n => {
-                if (n.isDead) return;
-                if (n.fleeing) {
-                    n.group.translateZ(0.04);
-                    n.animTime += delta * 8;
-                    n.legL.rotation.x = Math.sin(n.animTime) * 0.6;
-                    n.legR.rotation.x = -Math.sin(n.animTime) * 0.6;
-                }
+                if (!n.isDead && n.fleeing) n.group.translateZ(0.04);
             });
 
             renderer.render(scene, camera);
