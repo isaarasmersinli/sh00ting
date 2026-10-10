@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Bodycam Tactical Shooter 3D</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for Kill Counter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: none;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Bodycam Vignette Screen Border */
+        .bodycam-vignette {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at center, transparent 35%, rgba(0, 0, 0, 0.75) 85%, rgba(0, 0, 0, 0.98) 100%);
+            z-index: 10;
+        }
+
+        /* CRT Scanlines Overlay */
+        .scanlines-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%);
+            background-size: 100% 4px;
+            z-index: 11;
+        }
+
+        /* Dark Red Dot Crosshair */
+        .dot-crosshair {
+            width: 6px;
+            height: 6px;
+            background-color: #8b0000;
+            border: 1px solid #000000;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(139, 0, 0, 0.9);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        /* EXACT MATCH TO USER UPLOADED IMAGE IMAGE_3.PNG: Crimson Red text with thick black stroke */
+        .kill-counter-exact {
+            font-family: 'Bangers', 'Impact', sans-serif;
+            color: #bd1c1c;
+            font-size: 3.5rem;
+            line-height: 1;
+            letter-spacing: -2px;
+            /* Bold thick black outline matching the image */
+            -webkit-text-stroke: 3.5px #000000;
+            text-shadow: 
+                3px 3px 0 #000,
+               -3px -3px 0 #000,
+                3px -3px 0 #000,
+               -3px 3px 0 #000,
+                0px 4px 10px rgba(0, 0, 0, 0.9);
+            pointer-events: none;
+        }
+
+        /* Compact Scrollable Settings Menu for Mobile Landscape */
+        .compact-menu {
+            max-height: 82vh;
+            width: 92%;
+            max-width: 440px;
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-scrollable {
+            max-height: 52vh;
+            overflow-y: auto !important;
+            touch-action: pan-y !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-scrollable::-webkit-scrollbar { width: 5px; }
+        .modal-scrollable::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+        .modal-scrollable::-webkit-scrollbar-thumb { background: #b91c1c; border-radius: 3px; }
+    </style>
+</head>
+<body class="relative w-full h-full bg-black text-white">
+
+    <!-- 18+ AGE VERIFICATION MODAL -->
+    <div id="age-modal" class="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 text-center">
+        <div class="max-w-md w-full border border-neutral-800 p-8 rounded-xl bg-black shadow-2xl">
+            <h1 class="text-xl font-black tracking-tight text-white mb-3 uppercase font-mono">18 YAŞ UYARISI</h1>
+            <p class="text-neutral-400 text-xs mb-8 leading-relaxed font-mono">
+                Sadece 18 yaşındaysan gir.
+            </p>
+            <button id="age-enter-btn" class="w-full py-4 bg-white hover:bg-neutral-200 text-black font-extrabold text-xs rounded-lg transition active:scale-95 uppercase tracking-wider">
+                GİRİŞ YAP (18+)
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME HUD & TOUCH CONTROLS -->
+    <div id="game-hud" class="absolute inset-0 pointer-events-none hidden z-10">
+        <!-- Bodycam Overlays -->
+        <div id="vignette-layer" class="bodycam-vignette"></div>
+        <div id="scanlines-layer" class="scanlines-overlay"></div>
+
+        <!-- Crosshair -->
+        <div class="dot-crosshair"></div>
+
+        <!-- Top Left Info & Menu (E) -->
+        <div class="absolute top-3 left-3 flex items-center gap-2.5 pointer-events-auto">
+            <button id="menu-btn" onclick="toggleMenu()" class="w-12 h-12 bg-black/90 border-2 border-neutral-700 rounded-xl flex items-center justify-center text-white text-lg font-extrabold active:bg-neutral-800 transition shadow-2xl">
+                E
+            </button>
+            <div class="text-[9px] font-mono text-neutral-300 tracking-wider drop-shadow-md">
+                <div class="font-bold text-white flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                    AXON BODY 3 // POV 0.5
+                </div>
+                <div id="hud-cam-time" class="text-neutral-400">REC 00:00:00</div>
+            </div>
+        </div>
+
+        <!-- Top Right Kill Counter matching attached image -X format & Ammo Info -->
+        <div class="absolute top-2 right-4 flex flex-col items-end pointer-events-none">
+            <!-- FLOATING RED STROKED KILL COUNTER LIKE IMAGE_3.PNG -->
+            <div id="hud-kill-counter" class="kill-counter-exact pr-1">
+                -0
+            </div>
+            <div class="text-right bg-black/80 px-2.5 py-1 rounded-lg border border-neutral-800 -mt-1">
+                <div id="hud-weapon-name" class="text-[10px] font-black tracking-widest text-white uppercase font-mono">AR-15 TACTICAL</div>
+                <div class="text-[10px] font-mono text-neutral-300">AMMO: <span id="hud-ammo" class="text-white font-extrabold">30 / ∞</span></div>
+            </div>
+        </div>
+
+        <!-- TOUCH CONTROL BUTTONS -->
+        <div class="absolute inset-0 flex justify-between items-end p-4 pointer-events-none z-20">
+            <!-- Virtual Movement Joystick -->
+            <div id="joystick-zone" class="relative w-36 h-36 pointer-events-auto bg-neutral-900/60 border-2 border-neutral-700 rounded-full flex items-center justify-center backdrop-blur-xs">
+                <div id="joystick-knob" class="absolute w-14 h-14 bg-white/40 border-2 border-white rounded-full shadow-2xl transition-transform duration-75"></div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col gap-2.5 pointer-events-auto items-end">
+                <div class="flex gap-2">
+                    <button id="btn-crouch" class="w-13 h-13 bg-black/90 border-2 border-neutral-700 rounded-xl flex flex-col items-center justify-center text-neutral-200 active:bg-neutral-800 text-[10px] font-bold shadow-lg">
+                        <i class="fa-solid fa-person-arrow-down text-base mb-0.5"></i>
+                        <span>EĞİL</span>
+                    </button>
+                    <button id="btn-sprint" class="w-13 h-13 bg-black/90 border-2 border-neutral-700 rounded-xl flex flex-col items-center justify-center text-neutral-200 active:bg-neutral-800 text-[10px] font-bold shadow-lg">
+                        <i class="fa-solid fa-person-running text-base mb-0.5"></i>
+                        <span>KOŞ</span>
+                    </button>
+                    <button id="btn-switch" onclick="switchWeapon()" class="w-13 h-13 bg-black/90 border-2 border-neutral-700 rounded-xl flex flex-col items-center justify-center text-neutral-200 active:bg-neutral-800 text-[10px] font-bold shadow-lg">
+                        <i class="fa-solid fa-gun text-base mb-0.5"></i>
+                        <span>SİLAH</span>
+                    </button>
+                </div>
+
+                <div class="flex gap-2.5 items-center">
+                    <button id="btn-reload" onclick="reloadWeapon()" class="w-14 h-14 bg-black/90 border-2 border-neutral-700 rounded-xl flex flex-col items-center justify-center text-neutral-200 active:bg-neutral-800 text-[10px] font-bold p-1 shadow-lg">
+                        <i class="fa-solid fa-rotate text-lg mb-0.5"></i>
+                        <span>DOLDUR</span>
+                    </button>
+                    <button id="btn-ads" onclick="toggleADS()" class="w-14 h-14 bg-black/90 border-2 border-neutral-700 rounded-xl flex flex-col items-center justify-center text-neutral-200 active:bg-neutral-800 text-[10px] font-bold p-1 shadow-lg">
+                        <i class="fa-solid fa-bullseye text-lg mb-0.5"></i>
+                        <span>NİŞAN</span>
+                    </button>
+                    <button id="btn-shoot" class="w-24 h-24 bg-red-700 active:bg-red-600 border-4 border-red-500 rounded-full flex flex-col items-center justify-center text-white shadow-2xl">
+                        <i class="fa-solid fa-crosshairs text-2xl mb-0.5"></i>
+                        <span class="text-[11px] font-black tracking-widest uppercase">ATEŞ</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Toast -->
+        <div id="toast" class="absolute bottom-28 left-1/2 -translate-x-1/2 bg-black/90 border border-neutral-700 px-4 py-2 rounded-lg text-xs font-mono text-neutral-200 opacity-0 transition-opacity duration-300 pointer-events-none shadow-2xl">
+            Notification
+        </div>
+    </div>
+
+    <!-- COMPACT MOBILE SETTINGS MENU (E MENU) -->
+    <div id="sandbox-menu" class="fixed inset-0 z-40 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 hidden">
+        <div class="compact-menu bg-neutral-900 border border-neutral-800 shadow-2xl">
+            
+            <!-- Compact Header with Prominent Close Button -->
+            <div class="bg-black px-4 py-3 border-b border-neutral-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></div>
+                    <span class="font-extrabold tracking-wider text-[11px] text-white uppercase font-mono">TAKTIK KONTROL PANELİ</span>
+                </div>
+                <button onclick="toggleMenu()" class="px-3 py-1 bg-red-700 hover:bg-red-600 text-white font-black text-xs rounded-lg transition flex items-center gap-1">
+                    <i class="fa-solid fa-xmark"></i> KAPAT
+                </button>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="flex border-b border-neutral-800 bg-neutral-950 px-4 gap-4 text-[11px] font-bold">
+                <button onclick="switchTab('weapons')" id="tab-btn-weapons" class="py-2.5 text-white border-b-2 border-white">SİLAHLAR</button>
+                <button onclick="switchTab('spawner')" id="tab-btn-spawner" class="py-2.5 text-neutral-400 hover:text-white">NPC SPAWNER</button>
+                <button onclick="switchTab('settings')" id="tab-btn-settings" class="py-2.5 text-neutral-400 hover:text-white">AYARLAR & FOV</button>
+            </div>
+
+            <!-- Scrollable Content Body -->
+            <div class="p-4 modal-scrollable space-y-3 text-xs">
+                
+                <!-- Weapons Tab -->
+                <div id="tab-weapons" class="space-y-2.5">
+                    <p class="text-neutral-400 text-[11px]">Kullanmak istediğiniz silahı seçin:</p>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div onclick="selectWeapon('ar15')" id="card-ar15" class="p-2.5 rounded-xl border border-white bg-neutral-800 cursor-pointer transition flex flex-col justify-between shadow">
+                            <div>
+                                <div class="font-bold text-[11px] text-white mb-0.5 font-mono">AR-15</div>
+                                <div class="text-neutral-400 text-[9px]">Taktik Tüfek</div>
+                            </div>
+                            <div id="badge-ar15" class="mt-2 text-[9px] text-red-400 font-mono font-bold">SEÇİLİ</div>
+                        </div>
+
+                        <div onclick="selectWeapon('m4a1')" id="card-m4a1" class="p-2.5 rounded-xl border border-neutral-800 bg-neutral-950 cursor-pointer transition flex flex-col justify-between shadow">
+                            <div>
+                                <div class="font-bold text-[11px] text-white mb-0.5 font-mono">M4A1</div>
+                                <div class="text-neutral-400 text-[9px]">Karabina</div>
+                            </div>
+                            <div id="badge-m4a1" class="mt-2 text-[9px] text-neutral-500 font-mono font-bold">SEÇ</div>
+                        </div>
+
+                        <div onclick="selectWeapon('glock19')" id="card-glock19" class="p-2.5 rounded-xl border border-neutral-800 bg-neutral-950 cursor-pointer transition flex flex-col justify-between shadow">
+                            <div>
+                                <div class="font-bold text-[11px] text-white mb-0.5 font-mono">GLOCK 19</div>
+                                <div class="text-neutral-400 text-[9px]">Tabanca</div>
+                            </div>
+                            <div id="badge-glock19" class="mt-2 text-[9px] text-neutral-500 font-mono font-bold">SEÇ</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spawner Tab (MENU STAYS OPEN ON CLICK) -->
+                <div id="tab-spawner" class="space-y-2.5 hidden">
+                    <p class="text-neutral-400 text-[11px]">NPC Oluşturun (Tıkladıkça oluşur, menü kapanmaz):</p>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="spawnNPC(10)" class="p-2.5 bg-neutral-800 hover:bg-neutral-700 active:scale-95 border border-neutral-700 rounded-xl text-left shadow">
+                            <div class="font-bold text-white text-[11px]">+1 Yakın</div>
+                            <div class="text-neutral-400 text-[9px]">10m</div>
+                        </button>
+                        <button onclick="spawnNPC(20)" class="p-2.5 bg-neutral-800 hover:bg-neutral-700 active:scale-95 border border-neutral-700 rounded-xl text-left shadow">
+                            <div class="font-bold text-white text-[11px]">+1 Orta</div>
+                            <div class="text-neutral-400 text-[9px]">20m</div>
+                        </button>
+                        <button onclick="spawnNPC(35)" class="p-2.5 bg-neutral-800 hover:bg-neutral-700 active:scale-95 border border-neutral-700 rounded-xl text-left shadow">
+                            <div class="font-bold text-white text-[11px]">+1 Uzak</div>
+                            <div class="text-neutral-400 text-[9px]">35m</div>
+                        </button>
+                    </div>
+                    <div class="pt-2 border-t border-neutral-800 flex justify-between items-center">
+                        <span class="text-neutral-400 text-[11px]">Tüm NPC'leri sil:</span>
+                        <button onclick="clearNPCs()" class="px-3 py-1.5 bg-red-950 border border-red-800 hover:bg-red-900 rounded-lg text-red-300 font-bold text-[10px]">TEMİZLE</button>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="tab-settings" class="space-y-2.5 hidden">
+                    <!-- FOV Slider -->
+                    <div class="space-y-1 p-2.5 bg-neutral-950 rounded-xl border border-neutral-800">
+                        <div class="flex justify-between items-center text-[11px]">
+                            <span class="font-bold text-white">FOV (BAKIŞ AÇISI)</span>
+                            <span id="fov-val" class="font-mono text-neutral-300 font-extrabold">75°</span>
+                        </div>
+                        <input type="range" id="fov-slider" min="60" max="110" step="1" value="75" oninput="updateFOV(this.value)" class="w-full accent-red-600">
+                    </div>
+
+                    <!-- Sensitivity Slider -->
+                    <div class="space-y-1 p-2.5 bg-neutral-950 rounded-xl border border-neutral-800">
+                        <div class="flex justify-between items-center text-[11px]">
+                            <span class="font-bold text-white">HASSASİYET (SENSITIVITY)</span>
+                            <span id="sens-val" class="font-mono text-neutral-300 font-extrabold">3.0</span>
+                        </div>
+                        <input type="range" id="sens-slider" min="0.5" max="7.0" step="0.1" value="3.0" oninput="updateSensitivity(this.value)" class="w-full accent-white">
+                    </div>
+
+                    <!-- FX Toggles -->
+                    <div class="flex items-center justify-between p-2.5 bg-neutral-950 rounded-xl border border-neutral-800">
+                        <div>
+                            <div class="font-bold text-white text-[11px]">BODYCAM LENS & ÇİZGİLER</div>
+                            <div class="text-neutral-400 text-[9px]">Kenar karartması ve tarama çizgileri.</div>
+                        </div>
+                        <input type="checkbox" id="scanline-toggle" checked onchange="toggleBodycamFX(this)" class="w-5 h-5 accent-red-600 cursor-pointer">
+                    </div>
+
+                    <div class="flex items-center justify-between p-2.5 bg-neutral-950 rounded-xl border border-neutral-800">
+                        <div>
+                            <div class="font-bold text-white text-[11px]">KAN EFEKTİ (GORE)</div>
+                            <div class="text-neutral-400 text-[9px]">Sıçrama ve yer lekeleri.</div>
+                        </div>
+                        <input type="checkbox" id="blood-toggle" checked onchange="toggleBlood(this)" class="w-5 h-5 accent-red-600 cursor-pointer">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer with Big Close Button -->
+            <div class="bg-black px-4 py-2.5 border-t border-neutral-800 flex justify-end">
+                <button onclick="toggleMenu()" class="w-full py-2 bg-white hover:bg-neutral-200 text-black font-black rounded-xl text-xs uppercase tracking-wider">
+                    OYUNA DÖN
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playGunshotSound(isPistol) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(isPistol ? 400 : 280, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + (isPistol ? 0.12 : 0.18));
+
+                gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (isPistol ? 0.12 : 0.18));
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + (isPistol ? 0.12 : 0.18));
+
+                const bufSize = audioCtx.sampleRate * 0.15;
+                const buffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const nFilter = audioCtx.createBiquadFilter();
+                nFilter.type = 'bandpass';
+                nFilter.frequency.setValueAtTime(isPistol ? 2200 : 1600, audioCtx.currentTime);
+
+                const nGain = audioCtx.createGain();
+                nGain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+                nGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+
+                noise.connect(nFilter);
+                nFilter.connect(nGain);
+                nGain.connect(audioCtx.destination);
+                noise.start();
+            } catch(e) {}
+        }
+
+        function playHitSound(isHeadshot) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = isHeadshot ? 'sine' : 'triangle';
+                osc.frequency.setValueAtTime(isHeadshot ? 880 : 260, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + (isHeadshot ? 0.15 : 0.08));
+
+                gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (isHeadshot ? 0.15 : 0.08));
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + (isHeadshot ? 0.15 : 0.08));
+            } catch(e) {}
+        }
+
+        function playReloadSound() {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(450, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.25);
+
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.25);
+            } catch(e) {}
+        }
+    </script>
+
+    <script>
+        let scene, camera, renderer;
+        let activeWeapon = 'ar15';
+        let currentAmmo = 30;
+        let maxAmmo = 30;
+        let killCount = 0;
+        let baseFOV = 75;
+
+        let isBloodEnabled = true;
+        let isBodycamFXEnabled = true;
+        let isMenuOpen = false;
+        let lookSensitivity = 3.0;
+
+        let playerPos = new THREE.Vector3(0, 1.75, 5);
+        let moveInput = new THREE.Vector2(0, 0);
+        let isSprinting = false;
+        let isCrouching = false;
+        let isADS = false;
+        let targetCameraHeight = 1.75;
+        let currentCameraHeight = 1.75;
+
+        // Camera Pitch & Yaw (NO TILT / ROLL = ZERO)
+        let pitch = 0;
+        let yaw = 0;
+
+        let recoilKickX = 0;
+        let recoilKickY = 0;
+        let recoilSpringZ = 0;
+        let screenShake = 0;
+
+        let weaponGroup = null;
+        let muzzleFlashMesh = null;
+        let muzzleLight = null;
+        let raycaster;
+
+        let npcs = [];
+        let bloodDecals = [];
+
+        let joystickTouchId = null;
+        let lookTouchId = null;
+        let lastLookPos = { x: 0, y: 0 };
+
+        function createSkinTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#dfaf8e';
+            ctx.fillRect(0, 0, 256, 256);
+            const imgData = ctx.getImageData(0, 0, 256, 256);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const noise = (Math.random() - 0.5) * 12;
+                data[i] = Math.min(255, Math.max(0, data[i] + noise));
+                data[i+1] = Math.min(255, Math.max(0, data[i+1] + noise * 0.8));
+                data[i+2] = Math.min(255, Math.max(0, data[i+2] + noise * 0.6));
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        document.getElementById('age-enter-btn').addEventListener('click', () => {
+            initAudio();
+            document.getElementById('age-modal').classList.add('hidden');
+            document.getElementById('game-hud').classList.remove('hidden');
+            initThree();
+            initMultiTouchControls();
+            initKeyboardControls();
+            animate();
+        });
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x6e9ec4);
+            scene.fog = new THREE.FogExp2(0x6e9ec4, 0.005);
+
+            camera = new THREE.PerspectiveCamera(baseFOV, window.innerWidth / window.innerHeight, 0.05, 1000);
+            camera.rotation.order = 'YXZ'; // LOCKED ROTATION ORDER PREVENTS TILT
+            camera.position.copy(playerPos);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+            document.body.appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+
+            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambient);
+
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+            hemiLight.position.set(0, 50, 0);
+            scene.add(hemiLight);
+
+            const sun = new THREE.DirectionalLight(0xfff6e6, 1.4);
+            sun.position.set(30, 60, 20);
+            sun.castShadow = true;
+            sun.shadow.mapSize.width = 2048;
+            sun.shadow.mapSize.height = 2048;
+            sun.shadow.camera.near = 0.5;
+            sun.shadow.camera.far = 150;
+            const d = 50;
+            sun.shadow.camera.left = -d;
+            sun.shadow.camera.right = d;
+            sun.shadow.camera.top = d;
+            sun.shadow.camera.bottom = -d;
+            scene.add(sun);
+
+            buildBaseplateEnvironment();
+            buildWeaponMesh();
+            spawnInitialNPCs();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function buildBaseplateEnvironment() {
+            const floorGeo = new THREE.PlaneGeometry(300, 300);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x4a5442, roughness: 0.85 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            const grid = new THREE.GridHelper(300, 100, 0x111111, 0x2e3b25);
+            grid.position.y = 0.01;
+            scene.add(grid);
+        }
+
+        function buildWeaponMesh() {
+            if (weaponGroup) camera.remove(weaponGroup);
+
+            weaponGroup = new THREE.Group();
+            const skinTex = createSkinTexture();
+            const receiverMat = new THREE.MeshStandardMaterial({ color: 0x1c1e20, roughness: 0.35, metalness: 0.85 });
+            const polymerMat = new THREE.MeshStandardMaterial({ color: 0x141517, roughness: 0.6 });
+            const skinMat = new THREE.MeshStandardMaterial({ map: skinTex, roughness: 0.7 });
+
+            if (activeWeapon === 'glock19') {
+                maxAmmo = 17;
+                const slide = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.055, 0.22), receiverMat);
+                weaponGroup.add(slide);
+
+                const frame = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.11, 0.12), polymerMat);
+                frame.position.set(0, -0.06, 0.03);
+                frame.rotation.x = -0.22;
+                weaponGroup.add(frame);
+
+                const flashGeo = new THREE.ConeGeometry(0.08, 0.2, 8);
+                const flashMat = new THREE.MeshBasicMaterial({ color: 0xffcc44, transparent: true, opacity: 0 });
+                muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
+                muzzleFlashMesh.rotation.x = -Math.PI / 2;
+                muzzleFlashMesh.position.set(0, 0.01, -0.14);
+                weaponGroup.add(muzzleFlashMesh);
+
+                const rArm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.4, 12), skinMat);
+                rArm.rotation.x = Math.PI / 3.4;
+                rArm.position.set(0.04, -0.22, 0.2);
+                weaponGroup.add(rArm);
+            } else {
+                maxAmmo = 30;
+                const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.12, 0.42), receiverMat);
+                weaponGroup.add(receiver);
+
+                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.17, 0.075), polymerMat);
+                grip.position.set(0, -0.12, 0.12);
+                grip.rotation.x = -0.32;
+                weaponGroup.add(grip);
+
+                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.26, 0.11), receiverMat);
+                mag.position.set(0, -0.17, -0.04);
+                mag.rotation.x = -0.18;
+                weaponGroup.add(mag);
+
+                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.12, 0.32), polymerMat);
+                stock.position.set(0, 0.01, 0.36);
+                weaponGroup.add(stock);
+
+                const barrelLen = activeWeapon === 'ar15' ? 0.58 : 0.46;
+                const handguard = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, barrelLen, 16), receiverMat);
+                handguard.rotation.x = Math.PI / 2;
+                handguard.position.set(0, 0.01, -0.4);
+                weaponGroup.add(handguard);
+
+                const flashGeo = new THREE.ConeGeometry(0.12, 0.3, 8);
+                const flashMat = new THREE.MeshBasicMaterial({ color: 0xffcc44, transparent: true, opacity: 0 });
+                muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
+                muzzleFlashMesh.rotation.x = -Math.PI / 2;
+                muzzleFlashMesh.position.set(0, 0.01, -0.45 - barrelLen / 2);
+                weaponGroup.add(muzzleFlashMesh);
+
+                const rArm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.058, 0.45, 12), skinMat);
+                rArm.rotation.x = Math.PI / 3.2;
+                rArm.position.set(0.08, -0.25, 0.3);
+                weaponGroup.add(rArm);
+
+                const lArm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.058, 0.48, 12), skinMat);
+                lArm.rotation.x = Math.PI / 3.8;
+                lArm.rotation.z = -0.45;
+                lArm.position.set(-0.16, -0.2, -0.2);
+                weaponGroup.add(lArm);
+            }
+
+            muzzleLight = new THREE.PointLight(0xffaa22, 0, 10);
+            muzzleLight.position.copy(muzzleFlashMesh.position);
+            weaponGroup.add(muzzleLight);
+
+            currentAmmo = maxAmmo;
+            updateAmmoHUD();
+
+            if (activeWeapon === 'glock19') {
+                weaponGroup.position.set(0.12, -0.18, -0.38);
+            } else {
+                weaponGroup.position.set(0.18, -0.22, -0.45);
+            }
+
+            camera.add(weaponGroup);
+            scene.add(camera);
+        }
+
+        function createR15HumanNPC(x, distanceZ) {
+            const npcGroup = new THREE.Group();
+            npcGroup.userData = { 
+                isAlive: true, 
+                hp: 100, 
+                isFleeing: false, 
+                speed: 1.8, 
+                animOffset: Math.random() * 100,
+                moveAngle: Math.random() * Math.PI * 2,
+                changeDirTimer: Math.random() * 3 + 1
+            };
+
+            const skinTex = createSkinTexture();
+            const skinMat = new THREE.MeshStandardMaterial({ map: skinTex, roughness: 0.65 });
+            const clothesMat = new THREE.MeshStandardMaterial({ color: 0x222a36, roughness: 0.7 });
+            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x181a1f, roughness: 0.8 });
+            const hairMat = new THREE.MeshStandardMaterial({ color: 0x221810, roughness: 0.9 });
+
+            // Pelvis
+            const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.16, 0.22), pantsMat);
+            pelvis.position.y = 0.92;
+            pelvis.name = "BODY";
+            npcGroup.add(pelvis);
+
+            // Chest
+            const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.17, 0.48, 14), clothesMat);
+            chest.position.y = 1.28;
+            chest.castShadow = true;
+            chest.name = "BODY";
+            npcGroup.add(chest);
+
+            // Neck & Head
+            const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.1, 10), skinMat);
+            neck.position.y = 1.57;
+            npcGroup.add(neck);
+
+            const headGeo = new THREE.SphereGeometry(0.13, 16, 16);
+            headGeo.scale(1.0, 1.12, 1.05);
+            const head = new THREE.Mesh(headGeo, skinMat);
+            head.position.y = 1.68;
+            head.castShadow = true;
+            head.name = "HEAD"; // Instant Headshot Kill
+            npcGroup.add(head);
+
+            const hair = new THREE.Mesh(new THREE.SphereGeometry(0.136, 14, 14, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat);
+            hair.position.set(0, 1.69, -0.01);
+            npcGroup.add(hair);
+
+            // R15 Jointed Arms
+            const armL_Upper = new THREE.Group();
+            armL_Upper.position.set(-0.24, 1.46, 0);
+            const meshUAL = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.24, 10), clothesMat);
+            meshUAL.position.y = -0.12;
+            armL_Upper.add(meshUAL);
+
+            const armL_Lower = new THREE.Group();
+            armL_Lower.position.set(0, -0.24, 0);
+            const meshLAL = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.042, 0.24, 10), skinMat);
+            meshLAL.position.y = -0.12;
+            armL_Lower.add(meshLAL);
+            armL_Upper.add(armL_Lower);
+            npcGroup.add(armL_Upper);
+
+            const armR_Upper = new THREE.Group();
+            armR_Upper.position.set(0.24, 1.46, 0);
+            const meshUAR = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.24, 10), clothesMat);
+            meshUAR.position.y = -0.12;
+            armR_Upper.add(meshUAR);
+
+            const armR_Lower = new THREE.Group();
+            armR_Lower.position.set(0, -0.24, 0);
+            const meshLAR = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.042, 0.24, 10), skinMat);
+            meshLAR.position.y = -0.12;
+            armR_Lower.add(meshLAR);
+            armR_Upper.add(armR_Lower);
+            npcGroup.add(armR_Upper);
+
+            // R15 Jointed Legs
+            const legL_Upper = new THREE.Group();
+            legL_Upper.position.set(-0.11, 0.88, 0);
+            const meshULL = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.42, 10), pantsMat);
+            meshULL.position.y = -0.21;
+            legL_Upper.add(meshULL);
+
+            const legL_Lower = new THREE.Group();
+            legL_Lower.position.set(0, -0.42, 0);
+            const meshLLL = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.42, 10), pantsMat);
+            meshLLL.position.y = -0.21;
+            legL_Lower.add(meshLLL);
+            legL_Upper.add(legL_Lower);
+            npcGroup.add(legL_Upper);
+
+            const legR_Upper = new THREE.Group();
+            legR_Upper.position.set(0.11, 0.88, 0);
+            const meshULR = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.42, 10), pantsMat);
+            meshULR.position.y = -0.21;
+            legR_Upper.add(meshULR);
+
+            const legR_Lower = new THREE.Group();
+            legR_Lower.position.set(0, -0.42, 0);
+            const meshRLR = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.42, 10), pantsMat);
+            meshRLR.position.y = -0.21;
+            legR_Lower.add(meshRLR);
+            legR_Upper.add(legR_Lower);
+            npcGroup.add(legR_Upper);
+
+            npcGroup.userData.joints = {
+                armL_Upper, armL_Lower,
+                armR_Upper, armR_Lower,
+                legL_Upper, legL_Lower,
+                legR_Upper, legR_Lower,
+                chest
+            };
+
+            npcGroup.position.set(x, 0, -distanceZ);
+            scene.add(npcGroup);
+            npcs.push(npcGroup);
+        }
+
+        function spawnInitialNPCs() {
+            const distances = [12, 18, 25, 32, 40];
+            const xPositions = [-4, 5, -2, 6, 0];
+            for (let i = 0; i < 5; i++) {
+                createR15HumanNPC(xPositions[i], distances[i]);
+            }
+        }
+
+        function spawnNPC(distance) {
+            const x = (Math.random() - 0.5) * 16;
+            createR15HumanNPC(x, distance);
+            showToast(`+1 NPC eklendi (${distance}m)`);
+            // Spawning NPC DOES NOT CLOSE MENU
+        }
+
+        function clearNPCs() {
+            npcs.forEach(npc => scene.remove(npc));
+            npcs = [];
+            showToast("Tüm NPC'ler temizlendi.");
+        }
+
+        function initMultiTouchControls() {
+            const joystickZone = document.getElementById('joystick-zone');
+            const knob = document.getElementById('joystick-knob');
+
+            window.addEventListener('touchstart', (e) => {
+                if (isMenuOpen) return;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    
+                    const rect = joystickZone.getBoundingClientRect();
+                    if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                        touch.clientY >= rect.top && touch.clientY <= rect.bottom && joystickTouchId === null) {
+                        joystickTouchId = touch.identifier;
+                        updateJoystick(touch, rect);
+                        continue;
+                    }
+
+                    if (touch.clientX > window.innerWidth * 0.35 && lookTouchId === null) {
+                        const targetElem = document.elementFromPoint(touch.clientX, touch.clientY);
+                        if (!targetElem || !targetElem.closest('button')) {
+                            lookTouchId = touch.identifier;
+                            lastLookPos = { x: touch.clientX, y: touch.clientY };
+                        }
+                    }
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchmove', (e) => {
+                if (isMenuOpen) return;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+
+                    if (touch.identifier === joystickTouchId) {
+                        const rect = joystickZone.getBoundingClientRect();
+                        updateJoystick(touch, rect);
+                    }
+
+                    if (touch.identifier === lookTouchId) {
+                        const dx = touch.clientX - lastLookPos.x;
+                        const dy = touch.clientY - lastLookPos.y;
+                        lastLookPos = { x: touch.clientX, y: touch.clientY };
+
+                        const sens = 0.0035 * lookSensitivity;
+                        yaw -= dx * sens;
+                        pitch -= dy * sens;
+
+                        // Strict clamping to prevent flipping
+                        pitch = Math.max(-Math.PI / 2.05, Math.min(Math.PI / 2.05, pitch));
+                    }
+                }
+            }, { passive: false });
+
+            const endTouches = (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    if (touch.identifier === joystickTouchId) {
+                        joystickTouchId = null;
+                        knob.style.transform = `translate(0px, 0px)`;
+                        moveInput.set(0, 0);
+                    }
+                    if (touch.identifier === lookTouchId) {
+                        lookTouchId = null;
+                    }
+                }
+            };
+
+            window.addEventListener('touchend', endTouches);
+            window.addEventListener('touchcancel', endTouches);
+
+            function updateJoystick(touch, rect) {
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const dx = touch.clientX - centerX;
+                const dy = touch.clientY - centerY;
+                const dist = Math.min(45, Math.sqrt(dx * dx + dy * dy));
+                const angle = Math.atan2(dy, dx);
+
+                const kX = Math.cos(angle) * dist;
+                const kY = Math.sin(angle) * dist;
+                knob.style.transform = `translate(${kX}px, ${kY}px)`;
+
+                moveInput.x = kX / 45;
+                moveInput.y = -kY / 45;
+            }
+
+            bindTouchButton('btn-shoot', () => shootWeapon());
+            bindTouchButton('btn-sprint', () => toggleSprint());
+            bindTouchButton('btn-crouch', () => toggleCrouch());
+        }
+
+        function bindTouchButton(id, callback) {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                callback();
+            }, { passive: false });
+        }
+
+        function initKeyboardControls() {
+            const keys = {};
+            document.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (e.code === 'KeyE') toggleMenu();
+                if (e.code === 'KeyR') reloadWeapon();
+            });
+            document.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+
+            setInterval(() => {
+                if (lookTouchId !== null || isMenuOpen) return;
+                let f = 0, s = 0;
+                if (keys['KeyW']) f += 1;
+                if (keys['KeyS']) f -= 1;
+                if (keys['KeyD']) s += 1;
+                if (keys['KeyA']) s -= 1;
+                if (f !== 0 || s !== 0) moveInput.set(s, f);
+            }, 20);
+        }
+
+        function shootWeapon() {
+            if (isMenuOpen || currentAmmo <= 0) {
+                if (currentAmmo <= 0) showToast("Şarjör boş! Doldurun.");
+                return;
+            }
+
+            currentAmmo--;
+            updateAmmoHUD();
+            playGunshotSound(activeWeapon === 'glock19');
+
+            if (navigator.vibrate) {
+                navigator.vibrate([25, 10, 30]);
+            }
+
+            // Alert NPCs to FLEE with high speed
+            npcs.forEach(npc => {
+                if (npc.userData.isAlive) {
+                    npc.userData.isFleeing = true;
+                    npc.userData.speed = 4.6;
+                }
+            });
+
+            // Muzzle Flash
+            if (muzzleFlashMesh && muzzleLight) {
+                muzzleFlashMesh.material.opacity = 1.0;
+                muzzleLight.intensity = 3.0;
+                setTimeout(() => { 
+                    muzzleFlashMesh.material.opacity = 0; 
+                    muzzleLight.intensity = 0;
+                }, 40);
+            }
+
+            // Recoil
+            const isGlock = activeWeapon === 'glock19';
+            recoilKickX += isGlock ? 0.08 : 0.05;
+            recoilKickY += (Math.random() - 0.5) * 0.02;
+            recoilSpringZ += isGlock ? 0.05 : 0.08;
+            screenShake = 0.06;
+
+            // Combat Raycast
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(npcs, true);
+
+            if (intersects.length > 0) {
+                const hitObj = intersects[0].object;
+                let hitNpcGroup = hitObj;
+                while (hitNpcGroup.parent && hitNpcGroup.parent.type === "Group") {
+                    if (hitNpcGroup.userData && hitNpcGroup.userData.isAlive !== undefined) break;
+                    hitNpcGroup = hitNpcGroup.parent;
+                }
+
+                if (hitNpcGroup && hitNpcGroup.userData && hitNpcGroup.userData.isAlive) {
+                    const isHeadshot = hitObj.name === "HEAD";
+                    const damage = isHeadshot ? 100 : 35;
+                    hitNpcGroup.userData.hp -= damage;
+
+                    playHitSound(isHeadshot);
+
+                    const hitPoint = intersects[0].point;
+                    if (isBloodEnabled) {
+                        spawnBloodSplatter(hitPoint);
+                        spawnBloodGroundDecal(hitPoint);
+                    } else {
+                        spawnSparkParticles(hitPoint);
+                    }
+
+                    if (isHeadshot) showToast("HEADSHOT!");
+
+                    // KILLED NPC
+                    if (hitNpcGroup.userData.hp <= 0) {
+                        hitNpcGroup.userData.isAlive = false;
+                        hitNpcGroup.userData.isFleeing = false;
+                        
+                        // Increment Kill Counter (-1, -2, -6 format)
+                        killCount++;
+                        updateKillCounterHUD();
+
+                        // Organic Ragdoll Collapse
+                        hitNpcGroup.rotation.x = -Math.PI / 2;
+                        hitNpcGroup.rotation.z = (Math.random() - 0.5) * 0.6;
+                        hitNpcGroup.position.y = 0.18;
+
+                        hitNpcGroup.traverse(child => {
+                            if (child.material && child.material.color) {
+                                child.material.color.setHex(0x222222);
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        // UPDATED EXACTLY MATCHING USER IMAGE (Floating bold red stroke -X format)
+        function updateKillCounterHUD() {
+            document.getElementById('hud-kill-counter').innerText = `-${killCount}`;
+        }
+
+        function spawnBloodSplatter(pos) {
+            const count = 18;
+            const geo = new THREE.SphereGeometry(0.04, 6, 6);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x880000 });
+            for (let i = 0; i < count; i++) {
+                const drop = new THREE.Mesh(geo, mat);
+                drop.position.copy(pos);
+                scene.add(drop);
+                const vel = new THREE.Vector3((Math.random() - 0.5) * 0.22, Math.random() * 0.22, (Math.random() - 0.5) * 0.22);
+                let life = 25;
+                const timer = setInterval(() => {
+                    drop.position.add(vel);
+                    vel.y -= 0.012;
+                    life--;
+                    if (life <= 0) {
+                        clearInterval(timer);
+                        scene.remove(drop);
+                    }
+                }, 20);
+            }
+        }
+
+        function spawnBloodGroundDecal(hitPos) {
+            const decalGeo = new THREE.CircleGeometry(0.4 + Math.random() * 0.3, 12);
+            const decalMat = new THREE.MeshBasicMaterial({ color: 0x550000, transparent: true, opacity: 0.85, depthWrite: false });
+            const decal = new THREE.Mesh(decalGeo, decalMat);
+            decal.rotation.x = -Math.PI / 2;
+            decal.position.set(hitPos.x, 0.015, hitPos.z);
+            scene.add(decal);
+            bloodDecals.push(decal);
+        }
+
+        function spawnSparkParticles(pos) {
+            const mat = new THREE.MeshBasicMaterial({ color: 0xffcc66 });
+            for (let i = 0; i < 8; i++) {
+                const p = new THREE.Mesh(new THREE.SphereGeometry(0.02, 4, 4), mat);
+                p.position.copy(pos);
+                scene.add(p);
+                setTimeout(() => scene.remove(p), 120);
+            }
+        }
+
+        function reloadWeapon() {
+            playReloadSound();
+            currentAmmo = maxAmmo;
+            updateAmmoHUD();
+            showToast("Şarjör dolduruldu.");
+        }
+
+        function updateAmmoHUD() {
+            document.getElementById('hud-ammo').innerText = `${currentAmmo} / ∞`;
+        }
+
+        function toggleSprint() {
+            isSprinting = !isSprinting;
+            isCrouching = false;
+            targetCameraHeight = 1.75;
+            document.getElementById('btn-sprint').className = isSprinting ? 
+                "w-13 h-13 bg-white text-black font-extrabold rounded-xl flex flex-col items-center justify-center text-[10px] shadow-lg" : 
+                "w-13 h-13 bg-black/90 border-2 border-neutral-700 rounded-xl flex flex-col items-center justify-center text-neutral-200 text-[10px] shadow-lg";
+        }
+
+        function toggleCrouch() {
+            isCrouching = !isCrouching;
+            isSprinting = false;
+            targetCameraHeight = isCrouching ? 1.05 : 1.75;
+            document.getElementById('btn-crouch').className = isCrouching ? 
+                "w-13 h-13 bg-white text-black font-extrabold rounded-xl flex flex-col items-center justify-center text-[10px] shadow-lg" : 
+                "w-13 h-13 bg-black/90 border-2 border-neutral-700 rounded-xl flex flex-col items-center justify-center text-neutral-200 text-[10px] shadow-lg";
+        }
+
+        function toggleADS() {
+            isADS = !isADS;
+            camera.fov = isADS ? (baseFOV - 28) : baseFOV;
+            camera.updateProjectionMatrix();
+            document.getElementById('btn-ads').className = isADS ? 
+                "w-14 h-14 bg-white text-black font-extrabold rounded-xl flex flex-col items-center justify-center text-[10px] p-1 shadow-lg" : 
+                "w-14 h-14 bg-black/90 border-2 border-neutral-700 rounded-xl flex flex-col items-center justify-center text-neutral-200 text-[10px] p-1 shadow-lg";
+        }
+
+        function switchWeapon() {
+            if (activeWeapon === 'ar15') selectWeapon('m4a1');
+            else if (activeWeapon === 'm4a1') selectWeapon('glock19');
+            else selectWeapon('ar15');
+        }
+
+        function toggleMenu() {
+            isMenuOpen = !isMenuOpen;
+            document.getElementById('sandbox-menu').classList.toggle('hidden', !isMenuOpen);
+        }
+
+        function switchTab(tab) {
+            ['weapons', 'spawner', 'settings'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${t}`).className = "py-2.5 text-neutral-400 hover:text-white";
+            });
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tab}`).className = "py-2.5 text-white border-b-2 border-white";
+        }
+
+        function selectWeapon(w) {
+            activeWeapon = w;
+            buildWeaponMesh();
+            
+            ['ar15', 'm4a1', 'glock19'].forEach(item => {
+                const badge = document.getElementById(`badge-${item}`);
+                const card = document.getElementById(`card-${item}`);
+                if (badge && card) {
+                    if (item === w) {
+                        badge.innerText = "SEÇİLİ";
+                        badge.className = "mt-2 text-[9px] text-red-400 font-mono font-bold";
+                        card.className = "p-2.5 rounded-xl border border-white bg-neutral-800 cursor-pointer transition flex flex-col justify-between shadow";
+                    } else {
+                        badge.innerText = "SEÇ";
+                        badge.className = "mt-2 text-[9px] text-neutral-500 font-mono font-bold";
+                        card.className = "p-2.5 rounded-xl border border-neutral-800 bg-neutral-950 cursor-pointer transition flex flex-col justify-between shadow";
+                    }
+                }
+            });
+
+            const names = { ar15: "AR-15 TACTICAL", m4a1: "M4A1 CARBINE", glock19: "GLOCK 19" };
+            document.getElementById('hud-weapon-name').innerText = names[w];
+            showToast(`Silah: ${names[w]}`);
+        }
+
+        function updateFOV(val) {
+            baseFOV = parseInt(val);
+            document.getElementById('fov-val').innerText = `${baseFOV}°`;
+            camera.fov = isADS ? (baseFOV - 28) : baseFOV;
+            camera.updateProjectionMatrix();
+        }
+
+        function toggleBodycamFX(el) {
+            isBodycamFXEnabled = el.checked;
+            document.getElementById('scanlines-layer').classList.toggle('hidden', !isBodycamFXEnabled);
+            document.getElementById('vignette-layer').classList.toggle('hidden', !isBodycamFXEnabled);
+            showToast(`Bodycam Efektleri: ${isBodycamFXEnabled ? 'AÇIK' : 'KAPALI'}`);
+        }
+
+        function toggleBlood(el) {
+            isBloodEnabled = el.checked;
+            showToast(`Kan Efektleri: ${isBloodEnabled ? 'AÇIK' : 'KAPALI'}`);
+        }
+
+        function updateSensitivity(val) {
+            lookSensitivity = parseFloat(val);
+            document.getElementById('sens-val').innerText = lookSensitivity.toFixed(1);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.remove('opacity-0');
+            setTimeout(() => toast.classList.add('opacity-0'), 1800);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            const secs = Math.floor(time % 60).toString().padStart(2, '0');
+            const mins = Math.floor((time / 60) % 60).toString().padStart(2, '0');
+            document.getElementById('hud-cam-time').innerText = `REC 00:${mins}:${secs}`;
+
+            if (!isMenuOpen) {
+                currentCameraHeight += (targetCameraHeight - currentCameraHeight) * 10 * delta;
+
+                // Movement calculation
+                if (moveInput.lengthSq() > 0) {
+                    const speed = (isSprinting ? 7.5 : (isCrouching ? 2.2 : 3.8)) * delta;
+                    const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+                    const side = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+
+                    playerPos.addScaledVector(forward, moveInput.y * speed);
+                    playerPos.addScaledVector(side, moveInput.x * speed);
+
+                    playerPos.x = Math.max(-140, Math.min(140, playerPos.x));
+                    playerPos.z = Math.max(-140, Math.min(140, playerPos.z));
+                }
+
+                // Breathing & Movement Bobbing
+                const isMoving = moveInput.lengthSq() > 0;
+                const bobFreq = isMoving ? (isSprinting ? 12 : 7) : 2.0;
+                const bobAmp = isMoving ? (isSprinting ? 0.035 : 0.018) : 0.005;
+
+                const breathY = Math.sin(time * bobFreq) * bobAmp;
+                const breathX = Math.cos(time * (bobFreq * 0.5)) * (bobAmp * 0.5);
+
+                screenShake *= 0.82;
+                const shakeX = (Math.random() - 0.5) * screenShake;
+                const shakeY = (Math.random() - 0.5) * screenShake;
+
+                camera.position.set(
+                    playerPos.x + shakeX,
+                    currentCameraHeight + breathY + shakeY,
+                    playerPos.z
+                );
+
+                // STRICT EULER YXZ ROTATION - PREVENTS TILT ACCORDING TO SCREENSHOT FIX
+                camera.rotation.order = 'YXZ';
+                camera.rotation.set(
+                    pitch + recoilKickX + breathY * 0.1,
+                    yaw + recoilKickY + breathX * 0.08,
+                    0 // ZERO ROLL FOR PERFECT LEVEL VIEW
+                );
+
+                recoilKickX *= 0.82;
+                recoilKickY *= 0.82;
+                recoilSpringZ *= 0.82;
+
+                // Weapon Position Updates
+                if (weaponGroup) {
+                    if (isSprinting) {
+                        weaponGroup.position.set(0.18, -0.34, -0.36 + recoilSpringZ);
+                        weaponGroup.rotation.set(-0.38, -0.25, -0.2);
+                    } else if (isADS) {
+                        weaponGroup.position.set(0, -0.12, -0.28 + recoilSpringZ);
+                        weaponGroup.rotation.set(0, 0, 0);
+                    } else {
+                        const baseX = activeWeapon === 'glock19' ? 0.12 : 0.18;
+                        weaponGroup.position.set(baseX + breathX * 0.2, -0.22 + breathY * 0.4, -0.45 + recoilSpringZ);
+                        weaponGroup.rotation.set(0, 0, 0);
+                    }
+                }
+
+                // NPC AI: DYNAMIC DIRECTION CHANGING & FLEEING LOGIC
+                npcs.forEach(npc => {
+                    if (npc.userData.isAlive) {
+                        const distToPlayer = npc.position.distanceTo(playerPos);
+                        
+                        // Detect proximity to panic
+                        if (distToPlayer < 9) {
+                            npc.userData.isFleeing = true;
+                            npc.userData.speed = 4.6;
+                        }
+
+                        npc.userData.changeDirTimer -= delta;
+
+                        // FREQUENT DIRECTION CHANGING (Wandering or Fleeing)
+                        if (npc.userData.changeDirTimer <= 0) {
+                            if (npc.userData.isFleeing) {
+                                // Fleeing angle away from player with organic zigzag noise
+                                const angleFromPlayer = Math.atan2(
+                                    npc.position.x - playerPos.x,
+                                    npc.position.z - playerPos.z
+                                );
+                                npc.userData.moveAngle = angleFromPlayer + (Math.random() - 0.5) * 1.2;
+                                npc.userData.changeDirTimer = 1.0 + Math.random() * 1.5; // Changes dir rapidly when running
+                            } else {
+                                // Relaxed wandering angle change
+                                npc.userData.moveAngle += (Math.random() - 0.5) * 2.2;
+                                npc.userData.changeDirTimer = 2.5 + Math.random() * 3.0;
+                            }
+                        }
+
+                        // Move NPC along current direction vector
+                        const moveDir = new THREE.Vector3(
+                            Math.sin(npc.userData.moveAngle),
+                            0,
+                            Math.cos(npc.userData.moveAngle)
+                        );
+
+                        const speedMultiplier = npc.userData.isFleeing ? 4.5 : 1.2;
+                        npc.position.addScaledVector(moveDir, speedMultiplier * delta);
+                        
+                        // Smoothly rotate NPC towards current movement angle
+                        npc.rotation.y = THREE.MathUtils.lerp(npc.rotation.y, npc.userData.moveAngle, delta * 6);
+
+                        // Bound within arena limits
+                        npc.position.x = Math.max(-120, Math.min(120, npc.position.x));
+                        npc.position.z = Math.max(-120, Math.min(120, npc.position.z));
+
+                        // Dynamic Limb Running/Walking Animations
+                        const animSpeed = npc.userData.isFleeing ? 14 : 6;
+                        const runTime = time * animSpeed + npc.userData.animOffset;
+                        const joints = npc.userData.joints;
+
+                        if (joints) {
+                            const legAngleL = Math.sin(runTime) * (npc.userData.isFleeing ? 0.75 : 0.4);
+                            const legAngleR = -Math.sin(runTime) * (npc.userData.isFleeing ? 0.75 : 0.4);
+
+                            joints.legL_Upper.rotation.x = legAngleL;
+                            joints.legL_Lower.rotation.x = Math.max(0, -legAngleL * 0.8);
+
+                            joints.legR_Upper.rotation.x = legAngleR;
+                            joints.legR_Lower.rotation.x = Math.max(0, -legAngleR * 0.8);
+
+                            joints.armL_Upper.rotation.x = -legAngleL * 0.6;
+                            joints.armL_Lower.rotation.x = -0.25;
+
+                            joints.armR_Upper.rotation.x = legAngleR * 0.6;
+                            joints.armR_Lower.rotation.x = -0.25;
+
+                            npc.position.y = Math.abs(Math.sin(runTime * 2)) * (npc.userData.isFleeing ? 0.08 : 0.03);
+                        }
+                    }
+                });
+            }
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
