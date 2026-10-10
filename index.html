@@ -20,32 +20,26 @@
             overflow: hidden;
             background-color: #000;
             position: fixed;
+            top: 0;
+            left: 0;
         }
         #canvas-container {
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             position: absolute;
             top: 0;
             left: 0;
             z-index: 1;
         }
 
-        /* 18+ Yaş Doğrulama */
+        /* 18+ Yaş Uyarısı */
         #age-gate {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 99999;
-            text-align: center;
-            padding: 20px;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: #fff;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 99999; text-align: center; padding: 20px;
         }
         #age-gate h1 { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
         #age-gate p { font-size: 14px; color: #aaa; margin-bottom: 20px; }
@@ -249,8 +243,8 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        function getWidth() { return document.documentElement.clientWidth || window.innerWidth; }
-        function getHeight() { return document.documentElement.clientHeight || window.innerHeight; }
+        function getWidth() { return window.innerWidth; }
+        function getHeight() { return window.innerHeight; }
 
         function resizeCanvas() {
             const w = getWidth();
@@ -297,10 +291,11 @@
         fallbackGlock.visible = false;
         weapons = [fallbackM4, fallbackGlock];
 
+        // M4A1 Modeli (Ölçek ve pozisyon düzeltildi)
         gltfLoader.load('guns/m4a1/scene.gltf', (gltf) => {
             const model = gltf.scene;
-            model.scale.set(1.2, 1.2, 1.2);
-            model.position.set(0.18, -0.22, -0.35);
+            model.scale.set(6.0, 6.0, 6.0); // Belirgin boyuta getirildi
+            model.position.set(0.22, -0.28, -0.45);
             model.rotation.set(0, Math.PI, 0);
 
             if (gltf.animations.length > 0) {
@@ -316,10 +311,11 @@
             weapons[0] = model;
         });
 
+        // Glock Modeli (Ölçek ve pozisyon düzeltildi)
         gltfLoader.load('guns/glock/scene.gltf', (gltf) => {
             const model = gltf.scene;
-            model.scale.set(1.0, 1.0, 1.0);
-            model.position.set(0.15, -0.18, -0.3);
+            model.scale.set(4.5, 4.5, 4.5);
+            model.position.set(0.18, -0.22, -0.38);
             model.rotation.set(0, Math.PI, 0);
             model.visible = false;
 
@@ -339,9 +335,9 @@
         function createFallbackGun(color, length) {
             const group = new THREE.Group();
             const mat = new THREE.MeshStandardMaterial({ color: color });
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, length), mat);
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.18, length * 2.5), mat);
             group.add(body);
-            group.position.set(0.18, -0.2, -0.35);
+            group.position.set(0.22, -0.25, -0.45);
             return group;
         }
 
@@ -407,7 +403,7 @@
             }
         }
 
-        // --- Kontroller & Ağırlık/Lag Hesaplama ---
+        // --- Kontroller & Lag ---
         let touchX = 0, touchY = 0, camId = null;
         let deltaYaw = 0, deltaPitch = 0;
 
@@ -459,7 +455,7 @@
             joyVec = { x: dx / 50, y: dy / 50 };
         }
 
-        // Buton Dinleyicileri
+        // Butonlar
         document.getElementById('btn-fire').addEventListener('touchstart', (e) => { e.preventDefault(); fire(); });
         document.getElementById('btn-reload').addEventListener('click', () => {
             const m = weaponMixers[currentWeaponIndex];
@@ -496,10 +492,9 @@
         document.getElementById('spawn-npc-btn').addEventListener('click', () => spawnNPC((Math.random() - 0.5) * 12, camera.position.z - 8));
         document.getElementById('clear-npcs-btn').addEventListener('click', () => { npcs.forEach(n => scene.remove(n.group)); npcs.length = 0; });
 
-        // --- Oyun Döngüsü & Eylemsizlik (Lag) / Akıcı Nişan ---
+        // --- Döngü ---
         const clock = new THREE.Clock();
-        let weaponLagRotationX = 0;
-        let weaponLagRotationY = 0;
+        let weaponLagRotationX = 0, weaponLagRotationY = 0;
 
         function animate() {
             requestAnimationFrame(animate);
@@ -520,20 +515,19 @@
             player.pos.y += ((player.isCrouch ? 1.0 : 1.65) - player.pos.y) * 0.1;
             camera.position.copy(player.pos);
 
-            // --- Gerçekçi Bodycam Silah Eylemsizliği (Lag / Gecikmeli Gelme & Sallantı) ---
+            // Eylemsizlik / Lag
             weaponLagRotationY += (deltaYaw * 1.5 - weaponLagRotationY) * 0.1;
             weaponLagRotationX += (deltaPitch * 1.5 - weaponLagRotationX) * 0.1;
-            deltaYaw = 0; deltaPitch = 0; // Sıfırla
+            deltaYaw = 0; deltaPitch = 0;
 
-            // Nefes Alma / Yürüme Sallantısı
             const isMoving = Math.abs(joyVec.x) > 0.1 || Math.abs(joyVec.y) > 0.1;
             const bobSpeed = isMoving ? (player.isSprint ? 14 : 9) : 2.5;
             const bobAmt = isMoving ? (player.isSprint ? 0.045 : 0.025) : 0.006;
             const bobX = Math.cos(time * bobSpeed) * bobAmt;
             const bobY = Math.sin(time * bobSpeed * 2) * bobAmt;
 
-            // --- Nişan Alma (ADS) Akıcı Yaklaşma Geçişi ---
-            const targetPos = player.isAim ? new THREE.Vector3(0, -0.12, -0.22) : new THREE.Vector3(0.18, -0.22, -0.35);
+            // Nişan alma yumuşatması
+            const targetPos = player.isAim ? new THREE.Vector3(0, -0.15, -0.25) : new THREE.Vector3(0.22, -0.28, -0.45);
             const targetRotY = player.isAim ? 0 : weaponLagRotationY;
             const targetRotX = player.isAim ? 0 : weaponLagRotationX;
 
@@ -543,9 +537,8 @@
 
             weaponGroup.rotation.y += (targetRotY - weaponGroup.rotation.y) * 0.1;
             weaponGroup.rotation.x += (targetRotX - weaponGroup.rotation.x) * 0.1;
-            weaponGroup.rotation.x *= 0.85; // Ateş tepmesini sönümle
+            weaponGroup.rotation.x *= 0.85;
 
-            // NPC Kaçma
             npcs.forEach(n => {
                 if (n.isDead) return;
                 if (n.fleeing) {
